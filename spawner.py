@@ -32,7 +32,11 @@ def spawn_next_block(
     w = max(60, min(top_block.w, 360))
     w = max(60, w + random.randint(-18, 18))
 
-    x = (screen_w - w) / 2
+    # 기존 블록 x 좌표 근처에서만 랜덤하게 생성
+    center_x = top_block.x + top_block.w / 2
+    max_offset = min(120, (screen_w - edge_padding - w) // 2)  # 기존 블록 기준 최대 120px 이내
+    offset = random.randint(-max_offset, max_offset)
+    x = int(max(edge_padding, min(center_x + offset - w / 2, screen_w - edge_padding - w)))
     y = hover_y
 
     direction = random.choice([-1, 1])

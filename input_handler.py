@@ -31,6 +31,7 @@ def handle_events(
                     state.current.phase = "drop"
                 return None
 
+
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
                 if state.game_over:

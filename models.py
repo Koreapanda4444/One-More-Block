@@ -11,6 +11,7 @@ class Block:
     w: float
     h: float
     color: Color
+    phase: str = "move"
     vx: float = 0.0
 
 @dataclass

@@ -28,8 +28,17 @@ def update_game(
     if cur.phase == "move":
         cur.x += cur.vx * dt
 
-        left_limit = edge_padding
-        right_limit = screen_w - edge_padding - cur.w
+        # 기존 블록 중심 기준 ±120px 범위 내에서만 이동
+        top = get_top_block(state)
+        if top:
+            center_x = top.x + top.w / 2
+            move_range = 500
+            left_limit = max(center_x - move_range, edge_padding)
+            right_limit = min(center_x + move_range - cur.w, screen_w - edge_padding - cur.w)
+        else:
+            left_limit = edge_padding
+            right_limit = screen_w - edge_padding - cur.w
+
         if cur.x <= left_limit:
             cur.x = left_limit
             cur.vx *= -1
