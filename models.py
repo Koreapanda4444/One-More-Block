@@ -12,7 +12,7 @@ class BlockShard:
     w: float
     h: float
     color: Color
-    vy: float = 0.0
+    vy: float  # 생성 시 반드시 값 할당
 
 @dataclass
 class Block:
