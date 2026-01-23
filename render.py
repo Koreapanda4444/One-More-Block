@@ -47,7 +47,7 @@ def draw_game(
     screen.blit(img2, (18, 46))
 
     # 화면 중앙 플래시 텍스트
-    if state.flash_text:
+    if state.flash_timer > 0.0 and state.flash_text:
         t = font_flash.render(state.flash_text, True, colors["text"])
         screen.blit(t, (W // 2 - t.get_width() // 2, 86))
 
