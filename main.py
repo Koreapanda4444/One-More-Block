@@ -28,6 +28,7 @@ def main() -> None:
 
     font_main = pygame.font.SysFont("consolas", 24)
     font_hint = pygame.font.SysFont("consolas", 18)
+    font_flash = pygame.font.SysFont("consolas", 30)
     clock = pygame.time.Clock()
 
     colors = {"bg": config.BG_COLOR, "floor": config.FLOOR_COLOR, "text": config.TEXT_COLOR}
@@ -88,6 +89,10 @@ def main() -> None:
             horizontal_speed=config.HORIZONTAL_SPEED,
             edge_padding=config.EDGE_PADDING,
             min_overlap_ratio=config.MIN_OVERLAP_RATIO,
+            perfect_ratio=config.PERFECT_RATIO,
+            flash_time=config.FLASH_TIME,
+            combo_every=config.COMBO_REWARD_EVERY,
+            combo_bonus=config.COMBO_WIDTH_BONUS,
         )
 
         target_cam = compute_target_cam_y(state, config.CAMERA_TOP_MARGIN)
@@ -97,6 +102,7 @@ def main() -> None:
             screen,
             font_main=font_main,
             font_hint=font_hint,
+            font_flash=font_flash,
             state=state,
             cam_y=cam_y,
             screen_size=(W, H),

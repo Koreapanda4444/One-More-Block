@@ -15,6 +15,10 @@ def update_game(
     horizontal_speed: float,
     edge_padding: int,
     min_overlap_ratio: float,
+    perfect_ratio: float,
+    flash_time: float,
+    combo_every: int,
+    combo_bonus: int,
 ) -> None:
     if state.game_over:
         return
@@ -72,9 +76,18 @@ def update_game(
             cur.x = overlap_left
             cur.w = overlap_w
             cur.phase = "settled"
-
             state.stack.append(cur)
             state.score += 1
+
+            # PERFECT / COMBO 판정
+            if ratio >= perfect_ratio:
+                state.perfect_combo += 1
+                state.flash_text = f"PERFECT x{state.perfect_combo}"
+                state.flash_timer = flash_time
+                if state.perfect_combo % combo_every == 0:
+                    state.width_bonus += combo_bonus
+            else:
+                state.perfect_combo = 0
 
             spawn_next_block(state, screen_w, hover_y, block_h, edge_padding, horizontal_speed)
         return

@@ -8,6 +8,7 @@ def draw_game(
     screen: pygame.Surface,
     font_main: pygame.font.Font,
     font_hint: pygame.font.Font,
+    font_flash: pygame.font.Font,
     state: GameState,
     cam_y: float,
     screen_size: Tuple[int, int],
@@ -39,6 +40,11 @@ def draw_game(
     hint = "CLICK / SPACE to DROP   |   F11: window mode"
     img2 = font_hint.render(hint, True, colors["text"])
     screen.blit(img2, (18, 46))
+
+    # 화면 중앙 플래시 텍스트
+    if state.flash_text:
+        t = font_flash.render(state.flash_text, True, colors["text"])
+        screen.blit(t, (W // 2 - t.get_width() // 2, 86))
 
     if state.game_over:
         overlay = pygame.Surface((W, H), pygame.SRCALPHA)

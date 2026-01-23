@@ -28,3 +28,11 @@ class GameState:
     def __post_init__(self) -> None:
         if self.stack is None:
             self.stack = []
+
+    # PERFECT / COMBO
+    perfect_combo: int = 0
+    width_bonus: int = 0   # 다음 블록 폭 보너스(1회성)
+
+    # 화면 플래시 텍스트
+    flash_text: str = ""
+    flash_timer: float = 0.0
