@@ -28,6 +28,8 @@ def handle_events(
 
             if (not state.game_over) and event.key == key_drop:
                 if state.current and state.current.phase == "move":
+                    state.current._orig_x = state.current.x
+                    state.current._orig_w = state.current.w
                     state.current.phase = "drop"
                 return None
 
@@ -37,6 +39,8 @@ def handle_events(
                 if state.game_over:
                     return "restart"
                 if state.current and state.current.phase == "move":
+                    state.current._orig_x = state.current.x
+                    state.current._orig_w = state.current.w
                     state.current.phase = "drop"
                 return None
 

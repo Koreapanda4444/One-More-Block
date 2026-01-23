@@ -34,10 +34,6 @@ def update_game(
     if cur.phase == "move":
         cur.x += cur.vx * dt
 
-        # drop 시작 직전에 원본 폭 저장
-        if not hasattr(cur, "_orig_w"):
-            cur._orig_w = cur.w
-
         # 기존 블록 중심 기준 ±120px 범위 내에서만 이동
         top = get_top_block(state)
         if top:
@@ -79,30 +75,30 @@ def update_game(
                 state.best = max(state.best, state.score)
                 return
 
-            # 🔥 트림 직후에 조각 생성
-            left = overlap_left
-            original_width = getattr(cur, "_orig_w", cur.w)
+            # 🔥 트림 직후에 조각 생성 (정확한 원본 기준)
+            orig_left = getattr(cur, "_orig_x", cur.x)
+            orig_right = orig_left + getattr(cur, "_orig_w", cur.w)
+            new_left = overlap_left
+            new_right = overlap_left + overlap_w
             # 잘린 왼쪽 조각
-            if cur.x > left:
+            if new_left > orig_left:
                 state.shards.append(
                     BlockShard(
-                        x=cur.x,
+                        x=orig_left,
                         y=cur.y,
-                        w=left - cur.x,
+                        w=new_left - orig_left,
                         h=cur.h,
                         color=cur.color,
                         vy=shard_fall_speed,
                     )
                 )
             # 잘린 오른쪽 조각
-            right_edge = left + overlap_w
-            orig_right = cur.x + original_width
-            if right_edge < orig_right:
+            if new_right < orig_right:
                 state.shards.append(
                     BlockShard(
-                        x=right_edge,
+                        x=new_right,
                         y=cur.y,
-                        w=orig_right - right_edge,
+                        w=orig_right - new_right,
                         h=cur.h,
                         color=cur.color,
                         vy=shard_fall_speed,
