@@ -60,6 +60,9 @@ def update_game(
 
         land_y = top_surface_y(state, floor_y) - cur.h
         if cur.y >= land_y:
+            # settle 직전 y좌표를 따로 저장
+            shard_y = land_y
+
             cur.y = land_y
 
             top = get_top_block(state)
@@ -75,7 +78,7 @@ def update_game(
                 state.best = max(state.best, state.score)
                 return
 
-            # 🔥 트림 직후에 조각 생성 (정확한 원본 기준)
+            # 🔥 트림 직후에 조각 생성 (정확한 원본 기준, settle 직전 y좌표 사용)
             orig_left = getattr(cur, "_orig_x", cur.x)
             orig_right = orig_left + getattr(cur, "_orig_w", cur.w)
             new_left = overlap_left
@@ -85,7 +88,7 @@ def update_game(
                 state.shards.append(
                     BlockShard(
                         x=orig_left,
-                        y=cur.y,
+                        y=shard_y,
                         w=new_left - orig_left,
                         h=cur.h,
                         color=cur.color,
@@ -97,7 +100,7 @@ def update_game(
                 state.shards.append(
                     BlockShard(
                         x=new_right,
-                        y=cur.y,
+                        y=shard_y,
                         w=orig_right - new_right,
                         h=cur.h,
                         color=cur.color,
