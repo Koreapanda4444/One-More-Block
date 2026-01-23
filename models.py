@@ -2,7 +2,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
+
 Color = Tuple[int, int, int]
+
+@dataclass
+class BlockShard:
+    x: float
+    y: float
+    w: float
+    h: float
+    color: Color
+    vy: float = 0.0
 
 @dataclass
 class Block:
@@ -24,10 +34,13 @@ class GameState:
 
     current: Optional[Block] = None
     stack: List[Block] = None
+    shards: list = None
 
     def __post_init__(self) -> None:
         if self.stack is None:
             self.stack = []
+        if self.shards is None:
+            self.shards = []
 
     # PERFECT / COMBO
     perfect_combo: int = 0

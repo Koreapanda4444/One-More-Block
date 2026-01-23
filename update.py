@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from models import GameState
+from models import GameState, BlockShard
 from mechanics import top_surface_y, get_top_block, compute_overlap
 from spawner import spawn_next_block
 
@@ -19,6 +19,8 @@ def update_game(
     flash_time: float,
     combo_every: int,
     combo_bonus: int,
+    shard_gravity: float,
+    shard_fall_speed: float,
 ) -> None:
     if state.game_over:
         return
@@ -31,6 +33,10 @@ def update_game(
 
     if cur.phase == "move":
         cur.x += cur.vx * dt
+
+        # drop 시작 직전에 원본 폭 저장
+        if not hasattr(cur, "_orig_w"):
+            cur._orig_w = cur.w
 
         # 기존 블록 중심 기준 ±120px 범위 내에서만 이동
         top = get_top_block(state)
@@ -73,6 +79,36 @@ def update_game(
                 state.best = max(state.best, state.score)
                 return
 
+            # 🔥 트림 직후에 조각 생성
+            left = overlap_left
+            original_width = getattr(cur, "_orig_w", cur.w)
+            # 잘린 왼쪽 조각
+            if cur.x > left:
+                state.shards.append(
+                    BlockShard(
+                        x=cur.x,
+                        y=cur.y,
+                        w=left - cur.x,
+                        h=cur.h,
+                        color=cur.color,
+                        vy=shard_fall_speed,
+                    )
+                )
+            # 잘린 오른쪽 조각
+            right_edge = left + overlap_w
+            orig_right = cur.x + original_width
+            if right_edge < orig_right:
+                state.shards.append(
+                    BlockShard(
+                        x=right_edge,
+                        y=cur.y,
+                        w=orig_right - right_edge,
+                        h=cur.h,
+                        color=cur.color,
+                        vy=shard_fall_speed,
+                    )
+                )
+
             cur.x = overlap_left
             cur.w = overlap_w
             cur.phase = "settled"
@@ -91,3 +127,10 @@ def update_game(
 
             spawn_next_block(state, screen_w, hover_y, block_h, edge_padding, horizontal_speed)
         return
+
+    # 🧩 SHARD 업데이트
+    for s in state.shards[:]:
+        s.vy += shard_gravity * dt
+        s.y += s.vy * dt
+        if s.y > floor_y + 300:
+            state.shards.remove(s)

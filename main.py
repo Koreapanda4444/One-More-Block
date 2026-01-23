@@ -93,6 +93,8 @@ def main() -> None:
             flash_time=config.FLASH_TIME,
             combo_every=config.COMBO_REWARD_EVERY,
             combo_bonus=config.COMBO_WIDTH_BONUS,
+            shard_gravity=config.SHARD_GRAVITY,
+            shard_fall_speed=config.SHARD_FALL_SPEED,
         )
 
         target_cam = compute_target_cam_y(state, config.CAMERA_TOP_MARGIN)

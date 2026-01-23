@@ -21,6 +21,11 @@ def draw_game(
     floor_screen_y = int(floor_y - cam_y)
     pygame.draw.rect(screen, colors["floor"], pygame.Rect(0, floor_screen_y, W, H - floor_screen_y))
 
+    # 잘린 조각
+    for s in state.shards:
+        r = pygame.Rect(int(s.x), int(s.y - cam_y), int(s.w), int(s.h))
+        pygame.draw.rect(screen, s.color, r, border_radius=6)
+
     # 스택
     for b in state.stack:
         r = pygame.Rect(int(b.x), int(b.y - cam_y), int(b.w), int(b.h))
