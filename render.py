@@ -1,11 +1,42 @@
 from __future__ import annotations
 
+"""
+render.py
+
+- 토스트(업적 언락 알림) 표시
+- A 키 업적 패널 오버레이
+- 착지 스쿼시 + 흔들림 FX
+"""
+
 import random
 from typing import Tuple
-
 import pygame
 
 from models import GameState
+import achievements
+
+
+def _draw_toast(
+    screen: pygame.Surface,
+    font: pygame.font.Font,
+    text: str,
+    W: int,
+    y: int,
+    alpha: int,
+    text_color: Tuple[int, int, int],
+) -> None:
+    label = font.render(text, True, text_color)
+
+    pad_x, pad_y = 14, 10
+    box_w = label.get_width() + pad_x * 2
+    box_h = label.get_height() + pad_y * 2
+
+    box = pygame.Surface((box_w, box_h), pygame.SRCALPHA)
+    box.fill((255, 255, 255, max(0, min(alpha, 240))))
+    box.blit(label, (pad_x, pad_y))
+
+    x = (W - box_w) // 2
+    screen.blit(box, (x, y))
 
 
 def draw_game(
@@ -20,101 +51,107 @@ def draw_game(
     colors: dict,
     land_squash_px: float,
 ) -> None:
-    """
-    렌더링 전용 함수.
-
-    좌표 개념:
-    - 모든 블록/조각은 '월드 좌표'로 관리된다.
-    - 화면에 그릴 때만 (y - cam_y)로 카메라 보정을 한다.
-    - 화면 흔들림(shake)은 렌더 좌표에 (shake_x, shake_y)로 추가한다.
-    """
     W, H = screen_size
     screen.fill(colors["bg"])
 
-    # =========================
-    # 1) 화면 흔들림(Shake) 오프셋 계산
-    # =========================
+    # 흔들림
     shake_x = 0
     shake_y = 0
     if state.shake_timer > 0.0 and state.shake_total > 0.0:
-        # t: 1 → 0으로 줄어드는 비율 (시간이 지날수록 흔들림이 줄어듦)
         t = state.shake_timer / state.shake_total
         amp = state.shake_amp * t
         shake_x = int(random.uniform(-amp, amp))
         shake_y = int(random.uniform(-amp, amp))
 
-    # =========================
-    # 2) 바닥 렌더링
-    # =========================
+    # 바닥
     floor_screen_y = int(floor_y - cam_y + shake_y)
-    pygame.draw.rect(
-        screen,
-        colors["floor"],
-        pygame.Rect(0 + shake_x, floor_screen_y, W, H - floor_screen_y),
-    )
+    pygame.draw.rect(screen, colors["floor"], pygame.Rect(0 + shake_x, floor_screen_y, W, H - floor_screen_y))
 
-    # =========================
-    # 3) 잘린 조각(shard) 렌더링
-    # =========================
+    # 조각
     for s in state.shards:
-        x = s.x + shake_x
-        y = (s.y - cam_y) + shake_y
-        r = pygame.Rect(int(x), int(y), int(s.w), int(s.h))
+        r = pygame.Rect(int(s.x + shake_x), int(s.y - cam_y + shake_y), int(s.w), int(s.h))
         pygame.draw.rect(screen, s.color, r, border_radius=6)
 
-    # =========================
-    # 4) 스택 블록 렌더링 (+ 착지 스쿼시)
-    # =========================
+    # 스택(+ 스쿼시)
     for b in state.stack:
         x = b.x + shake_x
-        y = (b.y - cam_y) + shake_y
+        y = b.y - cam_y + shake_y
         w = b.w
         h = b.h
 
-        # 마지막으로 착지한 블록만 0.1초 정도 살짝 눌리는 연출
         if state.last_settled is b and state.land_timer > 0.0 and state.land_total > 0.0:
-            t = state.land_timer / state.land_total   # 1 → 0
+            t = state.land_timer / state.land_total
             squash = int(land_squash_px * t)
             h = max(1, h - squash)
-            y += squash  # 아래쪽으로 눌린 느낌
+            y += squash
 
         r = pygame.Rect(int(x), int(y), int(w), int(h))
         pygame.draw.rect(screen, b.color, r, border_radius=10)
 
-    # =========================
-    # 5) 현재 블록(current) 렌더링
-    # =========================
+    # 현재 블록
     if state.current:
         c = state.current
-        x = c.x + shake_x
-        y = (c.y - cam_y) + shake_y
-        r = pygame.Rect(int(x), int(y), int(c.w), int(c.h))
+        r = pygame.Rect(int(c.x + shake_x), int(c.y - cam_y + shake_y), int(c.w), int(c.h))
         pygame.draw.rect(screen, c.color, r, border_radius=10)
 
-    # =========================
-    # 6) UI 텍스트 렌더링
-    # =========================
+    # UI
     ui = f"HEIGHT: {state.score}     BEST: {state.best}"
     screen.blit(font_main.render(ui, True, colors["text"]), (18, 16))
 
-    hint = "CLICK / SPACE to DROP   |   F11: window mode"
+    hint = "CLICK / SPACE to DROP   |   F11: window mode   |   A: achievements"
     screen.blit(font_hint.render(hint, True, colors["text"]), (18, 46))
 
-    # PERFECT/콤보 플래시
-    if state.flash_timer > 0.0 and state.flash_text:
-        flash = font_flash.render(state.flash_text, True, colors["text"])
-        screen.blit(flash, (W // 2 - flash.get_width() // 2, 86))
+    if state.flash_text:
+        t = font_flash.render(state.flash_text, True, colors["text"])
+        screen.blit(t, (W // 2 - t.get_width() // 2, 86))
 
-    # =========================
-    # 7) 게임오버 오버레이
-    # =========================
+    # 토스트
+    if state.toast_text and state.toast_total > 0.0:
+        t = 1.0 - (state.toast_timer / state.toast_total)
+        fade_in = min(1.0, t / 0.12)
+        fade_out = min(1.0, (1.0 - t) / 0.18)
+        alpha = int(220 * fade_in * fade_out)
+
+        _draw_toast(screen, font_hint, state.toast_text, W=W, y=78, alpha=alpha, text_color=colors["text"])
+
+    # 게임오버
     if state.game_over:
         overlay = pygame.Surface((W, H), pygame.SRCALPHA)
-        overlay.fill((255, 255, 255, 185))
+        overlay.fill((255, 255, 255, 160))
         screen.blit(overlay, (0, 0))
 
         t1 = font_main.render(f"HEIGHT: {state.score}", True, colors["text"])
         t2 = font_main.render("ONE MORE?  (click / space)", True, colors["text"])
-
         screen.blit(t1, (W // 2 - t1.get_width() // 2, H // 2 - 40))
         screen.blit(t2, (W // 2 - t2.get_width() // 2, H // 2 + 10))
+
+    # 업적 패널
+    if state.show_achievements:
+        panel = pygame.Surface((W, H), pygame.SRCALPHA)
+        panel.fill((255, 255, 255, 210))
+        screen.blit(panel, (0, 0))
+
+        title = font_flash.render("ACHIEVEMENTS", True, colors["text"])
+        screen.blit(title, (W // 2 - title.get_width() // 2, 80))
+
+        x0 = 80
+        y0 = 140
+        line_h = 28
+
+        for i, a in enumerate(achievements.ALL):
+            unlocked = (a.id in state.unlocked_achievements)
+
+            mark = "✅" if unlocked else "🔒"
+            prog = ""
+            if a.progress is not None:
+                cur, goal = a.progress(state)
+                cur = max(0, int(cur))
+                goal = max(1, int(goal))
+                cur = min(cur, goal)
+                prog = f"  [{cur}/{goal}]"
+
+            line = f"{mark} {a.title}{prog}"
+            screen.blit(font_hint.render(line, True, colors["text"]), (x0, y0 + i * line_h))
+
+        foot = font_hint.render("Press A to close", True, colors["text"])
+        screen.blit(foot, (W // 2 - foot.get_width() // 2, H - 70))
