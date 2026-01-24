@@ -11,6 +11,7 @@ from update import update_game
 from camera import compute_target_cam_y
 from render import draw_game
 from spawner import reset_run
+from save_data import load_best, save_best
 
 def main() -> None:
     pygame.init()
@@ -33,7 +34,12 @@ def main() -> None:
 
     colors = {"bg": config.BG_COLOR, "floor": config.FLOOR_COLOR, "text": config.TEXT_COLOR}
 
+
     state = GameState()
+
+    state.best = load_best()
+    saved_best = state.best
+
     reset_run(
         state,
         screen_w=W,
@@ -78,6 +84,7 @@ def main() -> None:
                 horizontal_speed=config.HORIZONTAL_SPEED,
             )
 
+
         update_game(
             state,
             dt=dt,
@@ -96,6 +103,10 @@ def main() -> None:
             shard_gravity=config.SHARD_GRAVITY,
             shard_fall_speed=config.SHARD_FALL_SPEED,
         )
+
+        if state.best > saved_best:
+            save_best(state.best)
+            saved_best = state.best
 
         target_cam = compute_target_cam_y(state, config.CAMERA_TOP_MARGIN)
         cam_y += (target_cam - cam_y) * min(1.0, config.CAMERA_SMOOTH * dt)

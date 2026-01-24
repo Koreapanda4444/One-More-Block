@@ -23,39 +23,26 @@ def update_game(
     shard_gravity: float,
     shard_fall_speed: float,
 ) -> None:
-    # =========================
-    # 0) FLASH 타이머 (항상 감소)
-    # =========================
     if state.flash_timer > 0.0:
         state.flash_timer = max(0.0, state.flash_timer - dt)
         if state.flash_timer == 0.0:
             state.flash_text = ""
 
-    # =========================
-    # 1) SHARD 업데이트는 "항상" 수행
-    #    (move/drop에서 return 해도 위에서 이미 갱신됨)
-    # =========================
     for s in state.shards[:]:
         s.vy += shard_gravity * dt
         s.y += s.vy * dt
         if s.y > floor_y + 300:
             state.shards.remove(s)
 
-    # 게임오버여도 shard는 계속 떨어지고, flash는 꺼져야 하니까
-    # shard/flash 처리 후에만 return
     if state.game_over:
         return
 
-    # 현재 블록이 없으면 생성
     if state.current is None:
         spawn_next_block(state, screen_w, hover_y, block_h, edge_padding, horizontal_speed)
         return
 
     cur = state.current
 
-    # =========================
-    # 2) MOVE
-    # =========================
     if cur.phase == "move":
         cur.x += cur.vx * dt
 
@@ -80,9 +67,6 @@ def update_game(
         cur.y = hover_y
         return
 
-    # =========================
-    # 3) DROP
-    # =========================
     if cur.phase == "drop":
         cur.y += fall_speed * dt
 

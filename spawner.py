@@ -14,7 +14,6 @@ def spawn_first_block(state: GameState, screen_w: int, floor_y: float, block_h: 
     state.stack = [base]
     state.score = 0
     state.current = None
-    # PERFECT/COMBO 상태 초기화
     state.perfect_combo = 0
     state.width_bonus = 0
     state.flash_text = ""
@@ -36,7 +35,6 @@ def spawn_next_block(
 
     w = max(60, min(top_block.w, 360))
     w = max(60, w + random.randint(-18, 18))
-    # 퍼펙트 보상(다음 블록 폭 +N, 1회성)
     if state.width_bonus:
         w = min(420, w + state.width_bonus)
         state.width_bonus = 0
