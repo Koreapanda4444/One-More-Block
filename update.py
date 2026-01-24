@@ -22,7 +22,22 @@ def update_game(
     combo_bonus: int,
     shard_gravity: float,
     shard_fall_speed: float,
+    land_time: float,
+    land_squash_px: float,
+    shake_time: float,
+    shake_intensity: float,
+    perfect_shake_mult: float,
 ) -> None:
+
+    # LAND/ SHAKE 타이머 감소
+    if state.land_timer > 0.0:
+        state.land_timer = max(0.0, state.land_timer - dt)
+        if state.land_timer == 0.0:
+            state.last_settled = None
+
+    if state.shake_timer > 0.0:
+        state.shake_timer = max(0.0, state.shake_timer - dt)
+
     if state.flash_timer > 0.0:
         state.flash_timer = max(0.0, state.flash_timer - dt)
         if state.flash_timer == 0.0:
@@ -126,11 +141,22 @@ def update_game(
                 )
 
             # trim(겹친 부분만 남김)
+
             cur.x = overlap_left
             cur.w = overlap_w
             cur.phase = "settled"
             state.stack.append(cur)
             state.score += 1
+
+            # ✅ 착지 FX 트리거
+            state.last_settled = cur
+            state.land_timer = land_time
+            state.land_total = land_time
+
+            is_perfect = (ratio >= perfect_ratio)
+            state.shake_timer = shake_time
+            state.shake_total = shake_time
+            state.shake_amp = shake_intensity * (perfect_shake_mult if is_perfect else 1.0)
 
             # PERFECT / COMBO
             if ratio >= perfect_ratio:

@@ -1,3 +1,11 @@
+# LAND FX (착지 손맛)
+LAND_SQUASH_TIME = 0.10      # 착지 눌림 지속(초)
+LAND_SQUASH_PIXELS = 8       # 눌림 정도(px)
+
+# SHAKE FX (화면 흔들림)
+SHAKE_TIME = 0.12            # 흔들림 지속(초)
+SHAKE_INTENSITY = 6          # 기본 흔들림(px)
+PERFECT_SHAKE_MULT = 1.6     # 퍼펙트면 흔들림 배율
 FPS = 60
 WINDOW_W, WINDOW_H = 900, 600
 START_BORDERLESS_MAX = True

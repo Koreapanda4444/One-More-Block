@@ -26,6 +26,15 @@ class Block:
 
 @dataclass
 class GameState:
+        # 착지 FX
+        land_timer: float = 0.0
+        land_total: float = 0.0
+        last_settled: Optional[Block] = None
+
+        # 화면 흔들림 FX
+        shake_timer: float = 0.0
+        shake_total: float = 0.0
+        shake_amp: float = 0.0
     running: bool = True
     game_over: bool = False
 

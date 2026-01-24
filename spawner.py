@@ -19,6 +19,14 @@ def spawn_first_block(state: GameState, screen_w: int, floor_y: float, block_h: 
     state.flash_text = ""
     state.flash_timer = 0.0
 
+    # 착지/흔들림 FX 초기화
+    state.land_timer = 0.0
+    state.land_total = 0.0
+    state.last_settled = None
+    state.shake_timer = 0.0
+    state.shake_total = 0.0
+    state.shake_amp = 0.0
+
 def spawn_next_block(
     state: GameState,
     screen_w: int,

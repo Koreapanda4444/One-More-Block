@@ -102,6 +102,11 @@ def main() -> None:
             combo_bonus=config.COMBO_WIDTH_BONUS,
             shard_gravity=config.SHARD_GRAVITY,
             shard_fall_speed=config.SHARD_FALL_SPEED,
+            land_time=config.LAND_SQUASH_TIME,
+            land_squash_px=config.LAND_SQUASH_PIXELS,
+            shake_time=config.SHAKE_TIME,
+            shake_intensity=config.SHAKE_INTENSITY,
+            perfect_shake_mult=config.PERFECT_SHAKE_MULT,
         )
 
         if state.best > saved_best:
@@ -121,6 +126,7 @@ def main() -> None:
             screen_size=(W, H),
             floor_y=floor_y,
             colors=colors,
+            land_squash_px=config.LAND_SQUASH_PIXELS,
         )
 
         pygame.display.flip()

@@ -1,6 +1,7 @@
-from __future__ import annotations
 
+from __future__ import annotations
 import pygame
+import random
 from models import GameState
 from typing import Tuple
 
@@ -14,24 +15,51 @@ def draw_game(
     screen_size: Tuple[int, int],
     floor_y: float,
     colors: dict,
+    land_squash_px: float,
 ) -> None:
     W, H = screen_size
     screen.fill(colors["bg"])
 
-    floor_screen_y = int(floor_y - cam_y)
-    pygame.draw.rect(screen, colors["floor"], pygame.Rect(0, floor_screen_y, W, H - floor_screen_y))
+    # SHAKE 오프셋 계산
+    shake_x = 0
+    shake_y = 0
+    if state.shake_timer > 0.0 and state.shake_total > 0.0:
+        t = state.shake_timer / state.shake_total
+        amp = state.shake_amp * t
+        shake_x = int(random.uniform(-amp, amp))
+        shake_y = int(random.uniform(-amp, amp))
+
+    floor_screen_y = int(floor_y - cam_y + shake_y)
+    pygame.draw.rect(screen, colors["floor"], pygame.Rect(0 + shake_x, floor_screen_y, W, H - floor_screen_y))
 
     # 잘린 조각
-        r = pygame.Rect(int(s.x), int(s.y - cam_y), int(s.w), int(s.h))
+    for s in state.shards:
+        y = (s.y - cam_y) + shake_y
+        x = s.x + shake_x
+        r = pygame.Rect(int(x), int(y), int(s.w), int(s.h))
         pygame.draw.rect(screen, s.color, r, border_radius=6)
 
     # 스택
     for b in state.stack:
+        y = (b.y - cam_y) + shake_y
+        x = b.x + shake_x
+        w = b.w
+        h = b.h
+        # 마지막 착지 블록 스쿼시
+        if state.last_settled is b and state.land_timer > 0.0 and state.land_total > 0.0:
+            t = state.land_timer / state.land_total
+            squash = int(land_squash_px * t)
+            h = max(1, h - squash)
+            y += squash
+        r = pygame.Rect(int(x), int(y), int(w), int(h))
         pygame.draw.rect(screen, b.color, r, border_radius=10)
 
     # 현재 블록
     if state.current:
         c = state.current
+        y = (c.y - cam_y) + shake_y
+        x = c.x + shake_x
+        r = pygame.Rect(int(x), int(y), int(c.w), int(c.h))
         pygame.draw.rect(screen, c.color, r, border_radius=10)
 
     # UI
