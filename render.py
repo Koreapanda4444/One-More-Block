@@ -1,8 +1,16 @@
+"""render.py
+
+화면 그리기 전용.
+"""
+
 from __future__ import annotations
 
-import pygame
-from models import GameState
 from typing import Tuple
+
+import pygame
+
+from models import GameState
+
 
 def draw_game(
     screen: pygame.Surface,
@@ -15,38 +23,39 @@ def draw_game(
     floor_y: float,
     colors: dict,
 ) -> None:
+    """한 프레임 렌더."""
     W, H = screen_size
+
     screen.fill(colors["bg"])
 
     floor_screen_y = int(floor_y - cam_y)
-    pygame.draw.rect(screen, colors["floor"], pygame.Rect(0, floor_screen_y, W, H - floor_screen_y))
+    pygame.draw.rect(
+        screen,
+        colors["floor"],
+        pygame.Rect(0, floor_screen_y, W, H - floor_screen_y),
+    )
 
-    # 잘린 조각
     for s in state.shards:
         r = pygame.Rect(int(s.x), int(s.y - cam_y), int(s.w), int(s.h))
         pygame.draw.rect(screen, s.color, r, border_radius=6)
 
-    # 스택
     for b in state.stack:
         r = pygame.Rect(int(b.x), int(b.y - cam_y), int(b.w), int(b.h))
         pygame.draw.rect(screen, b.color, r, border_radius=10)
 
-    # 현재 블록
     if state.current:
         c = state.current
         r = pygame.Rect(int(c.x), int(c.y - cam_y), int(c.w), int(c.h))
         pygame.draw.rect(screen, c.color, r, border_radius=10)
 
-    # UI
     ui = f"HEIGHT: {state.score}     BEST: {state.best}"
     img = font_main.render(ui, True, colors["text"])
     screen.blit(img, (18, 16))
 
-    hint = "CLICK / SPACE to DROP   |   F11: window mode   |   B: BGM   |   [ ]: volume"
+    hint = "CLICK/SPACE: DROP  |  F11: window size  |  B: BGM  |  [ ]: volume"
     img2 = font_hint.render(hint, True, colors["text"])
     screen.blit(img2, (18, 46))
 
-    # 화면 중앙 플래시 텍스트
     if state.flash_text:
         t = font_flash.render(state.flash_text, True, colors["text"])
         screen.blit(t, (W // 2 - t.get_width() // 2, 86))

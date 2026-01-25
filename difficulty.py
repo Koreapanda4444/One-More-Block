@@ -1,24 +1,17 @@
+"""difficulty.py
+
+난이도(스케일링) 계산.
+
+현재 버전에서는 아직 main에 연결하지 않은 상태다.
+"""
+
 from __future__ import annotations
-
-"""
-difficulty.py
-
-점수(HEIGHT)에 따라 난이도 파라미터를 계산한다.
-
-왜 이렇게?
-- 초반은 안정적으로, 후반은 손이 바쁘게 만들기 위함.
-- 무한히 빨라지면 불합리해지므로 상한(cap)을 둔다.
-"""
 
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
 class Difficulty:
-    """
-    update/spawn에서 사용할 난이도 값 묶음.
-    frozen=True: 계산 결과를 실수로 변경하지 못하게 고정
-    """
     level: int
     horizontal_speed: float
     fall_speed: float
@@ -42,19 +35,7 @@ def compute_difficulty(
     offset_step: int,
     offset_max: int,
 ) -> Difficulty:
-    """
-    score를 기반으로 난이도 레벨을 계산하고,
-    레벨에 따라 각 파라미터를 증가시키되 최대치를 넘지 않게 제한한다.
-
-    레벨:
-      level = score // step_score
-
-    속도:
-      base * (1 + level * step), 단 최대 배율(hs_max_mul/fs_max_mul)
-
-    랜덤:
-      base + level * step, 단 최대값(jitter_max/offset_max)
-    """
+    """점수에 따라 Difficulty를 계산해서 반환한다."""
     score = max(0, int(score))
     step_score = max(1, int(step_score))
 

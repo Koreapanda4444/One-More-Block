@@ -1,8 +1,27 @@
+"""input_handler.py
+
+입력(키/마우스) 처리.
+"""
+
 from __future__ import annotations
 
 from typing import Optional
+
 import pygame
+
 from models import GameState
+
+
+def _begin_drop(state: GameState) -> None:
+    """현재 블록을 drop 상태로 전환(원본 좌표/폭 저장)."""
+    if not state.current:
+        return
+    if state.current.phase != "move":
+        return
+    state.current._orig_x = state.current.x
+    state.current._orig_w = state.current.w
+    state.current.phase = "drop"
+
 
 def handle_events(
     state: GameState,
@@ -10,6 +29,7 @@ def handle_events(
     key_drop: int,
     key_quit: int,
 ) -> Optional[str]:
+    """pygame 이벤트를 읽고 명령 문자열을 반환."""
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             state.running = False
@@ -25,12 +45,8 @@ def handle_events(
 
             if event.key == pygame.K_b:
                 return "bgm_toggle"
-
-            # [ / - : 볼륨 다운
             if event.key in (pygame.K_LEFTBRACKET, pygame.K_MINUS):
                 return "bgm_down"
-
-            # ] / = : 볼륨 업
             if event.key in (pygame.K_RIGHTBRACKET, pygame.K_EQUALS):
                 return "bgm_up"
 
@@ -38,21 +54,14 @@ def handle_events(
                 return "restart"
 
             if (not state.game_over) and event.key == key_drop:
-                if state.current and state.current.phase == "move":
-                    state.current._orig_x = state.current.x
-                    state.current._orig_w = state.current.w
-                    state.current.phase = "drop"
+                _begin_drop(state)
                 return None
-
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
                 if state.game_over:
                     return "restart"
-                if state.current and state.current.phase == "move":
-                    state.current._orig_x = state.current.x
-                    state.current._orig_w = state.current.w
-                    state.current.phase = "drop"
+                _begin_drop(state)
                 return None
 
     return None

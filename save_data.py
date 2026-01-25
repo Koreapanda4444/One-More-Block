@@ -1,82 +1,80 @@
+"""save_data.py
+
+간단한 저장/로드.
+
+저장 대상
+- BEST(최고 높이)
+- BGM 설정(on/off, volume)
+"""
+
 from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any, Dict, Tuple
 
 
-def _save_path() -> Path:
-    return Path(__file__).resolve().parent / "save.json"
+SAVE_PATH = Path("save_data.json")
 
 
-def load_best() -> int:
-    p = _save_path()
+def _safe_read_json() -> Dict[str, Any]:
+    """저장 파일을 읽는다. 실패하면 빈 dict 반환."""
     try:
-        if not p.exists():
-            return 0
-        data = json.loads(p.read_text(encoding="utf-8"))
-        best = int(data.get("best", 0))
-        return max(0, best)
+        if not SAVE_PATH.exists():
+            return {}
+        with SAVE_PATH.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
     except Exception:
-        return 0
+        return {}
+
+
+def _safe_write_json(data: Dict[str, Any]) -> None:
+    """저장 파일을 쓴다(실패해도 게임이 죽지 않게)."""
+    try:
+        with SAVE_PATH.open("w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+
+def load_best(default: int = 0) -> int:
+    """BEST 로드."""
+    data = _safe_read_json()
+    try:
+        return int(data.get("best", default))
+    except Exception:
+        return int(default)
 
 
 def save_best(best: int) -> None:
-    p = _save_path()
+    """BEST 저장."""
+    data = _safe_read_json()
+    data["best"] = int(best)
+    _safe_write_json(data)
+
+
+def load_bgm_settings(default_on: bool, default_volume: float) -> Tuple[bool, float]:
+    """BGM 설정(on/off + volume) 로드."""
+    data = _safe_read_json()
+
+    on = bool(data.get("bgm_on", default_on))
     try:
-        # ✅ 다른 설정 키(bgm 등)가 생겨도 덮어쓰면서 날리지 않도록
-        payload = {}
-        if p.exists():
-            try:
-                payload = json.loads(p.read_text(encoding="utf-8"))
-                if not isinstance(payload, dict):
-                    payload = {}
-            except Exception:
-                payload = {}
-
-        payload["best"] = int(best)
-        p.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    except Exception:
-        pass
-
-
-def load_bgm_settings(default_on: bool = True, default_volume: float = 0.25) -> tuple[bool, float]:
-    """save.json에서 BGM 설정 로드.
-
-    과거 버전(save.json에 best만 있던 버전)도 자연스럽게 호환.
-    """
-    p = _save_path()
-    try:
-        if not p.exists():
-            return bool(default_on), float(default_volume)
-        data = json.loads(p.read_text(encoding="utf-8"))
-        if not isinstance(data, dict):
-            return bool(default_on), float(default_volume)
-
-        on = bool(data.get("bgm_on", default_on))
         vol = float(data.get("bgm_volume", default_volume))
-        vol = 0.0 if vol < 0.0 else 1.0 if vol > 1.0 else vol
-        return on, vol
     except Exception:
-        return bool(default_on), float(default_volume)
+        vol = float(default_volume)
+
+    if vol < 0.0:
+        vol = 0.0
+    if vol > 1.0:
+        vol = 1.0
+
+    return on, vol
 
 
-def save_bgm_settings(bgm_on: bool, bgm_volume: float) -> None:
-    """save.json에 BGM 설정 저장(다른 키 유지)."""
-    p = _save_path()
-    try:
-        payload = {}
-        if p.exists():
-            try:
-                payload = json.loads(p.read_text(encoding="utf-8"))
-                if not isinstance(payload, dict):
-                    payload = {}
-            except Exception:
-                payload = {}
-
-        payload["bgm_on"] = bool(bgm_on)
-        v = float(bgm_volume)
-        v = 0.0 if v < 0.0 else 1.0 if v > 1.0 else v
-        payload["bgm_volume"] = v
-        p.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    except Exception:
-        pass
+def save_bgm_settings(on: bool, volume: float) -> None:
+    """BGM 설정 저장."""
+    data = _safe_read_json()
+    data["bgm_on"] = bool(on)
+    data["bgm_volume"] = float(volume)
+    _safe_write_json(data)
