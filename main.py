@@ -1,13 +1,5 @@
 from __future__ import annotations
 
-"""
-main.py
-
-Commit 9:
-- 런 플레이 시간(state.run_time) 누적
-  (업적 패널 열려있을 때 / 게임오버 상태에서는 증가하지 않게)
-"""
-
 import sys
 import pygame
 
@@ -21,9 +13,16 @@ from render import draw_game
 from spawner import reset_run
 from save_data import load_profile, save_profile
 from difficulty import compute_difficulty
+from audio import AudioManager
 
 
 def main() -> None:
+    # mixer 지연 줄이기(가능한 환경에서만)
+    try:
+        pygame.mixer.pre_init(44100, -16, 1, 512)
+    except Exception:
+        pass
+
     pygame.init()
     pygame.display.set_caption("ONE MORE BLOCK")
 
@@ -46,12 +45,22 @@ def main() -> None:
 
     state = GameState()
 
-    best, unlocked = load_profile()
+    # profile 로드 (best + achievements + volume/mute)
+    best, unlocked, vol, muted = load_profile()
     state.best = best
     state.unlocked_achievements = set(unlocked)
+    state.audio_volume = float(vol) if vol is not None else config.DEFAULT_VOLUME
+    state.audio_muted = bool(muted)
+
+    # 오디오 매니저
+    audio = AudioManager(master_volume=state.audio_volume, muted=state.audio_muted)
+    audio.init()
+    audio.apply_volume()
 
     saved_best = state.best
     saved_unlocked = set(state.unlocked_achievements)
+    saved_vol = state.audio_volume
+    saved_muted = state.audio_muted
 
     reset_run(
         state,
@@ -71,6 +80,15 @@ def main() -> None:
         dt = clock.tick(config.FPS) / 1000.0
 
         cmd = handle_events(state, key_toggle, key_drop, key_quit)
+
+        # 입력에서 바뀐 볼륨/뮤트 → 오디오 적용
+        if state.audio_volume != saved_vol:
+            audio.set_volume(state.audio_volume)
+            saved_vol = state.audio_volume
+        if state.audio_muted != saved_muted:
+            audio.muted = state.audio_muted
+            audio.apply_volume()
+            saved_muted = state.audio_muted
 
         if cmd == "toggle_window_mode":
             borderless_max = not borderless_max
@@ -103,7 +121,7 @@ def main() -> None:
                 spawn_offset=config.DIFF_SPAWN_OFFSET_BASE,
             )
 
-        # ✅ 런 타임 누적: 게임 진행 중 + 업적 패널 닫힘 상태에서만 증가
+        # 런 타임 누적(Commit 9)
         if (not state.game_over) and (not state.show_achievements):
             state.run_time += dt
 
@@ -153,11 +171,22 @@ def main() -> None:
                 toast_time=config.TOAST_TIME,
             )
 
+        # ✅ SFX 큐 소비 → 재생
+        while state.sfx_queue:
+            audio.play(state.sfx_queue.popleft())
+
         # 저장(변경 시만)
-        if state.best != saved_best or state.unlocked_achievements != saved_unlocked:
-            save_profile(state.best, state.unlocked_achievements)
+        if (
+            state.best != saved_best
+            or state.unlocked_achievements != saved_unlocked
+            or state.audio_volume != saved_vol
+            or state.audio_muted != saved_muted
+        ):
+            save_profile(state.best, state.unlocked_achievements, state.audio_volume, state.audio_muted)
             saved_best = state.best
             saved_unlocked = set(state.unlocked_achievements)
+            saved_vol = state.audio_volume
+            saved_muted = state.audio_muted
 
         target_cam = compute_target_cam_y(state, config.CAMERA_TOP_MARGIN)
         cam_y += (target_cam - cam_y) * min(1.0, config.CAMERA_SMOOTH * dt)

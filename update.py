@@ -1,12 +1,5 @@
 from __future__ import annotations
 
-"""
-update.py
-
-Commit 9:
-- 런 요약용 통계 누적(run_landings/run_overlap_sum/run_last_overlap_ratio/fail_reason)
-"""
-
 from models import GameState, BlockShard
 from mechanics import top_surface_y, get_top_block, compute_overlap
 from spawner import spawn_next_block
@@ -68,7 +61,7 @@ def update_game(
     state.toast_total = float(toast_time)
     _toast_tick(state, dt)
 
-    # ✅ SHARD는 항상 업데이트
+    # SHARD는 항상 업데이트
     for s in state.shards[:]:
         s.vy += shard_gravity * dt
         s.y += s.vy * dt
@@ -127,11 +120,10 @@ def update_game(
             state.game_over = True
             state.fail_reason = "기반 블록 없음"
             state.best = max(state.best, state.score)
+            state.sfx_queue.append("gameover")
             return
 
         overlap_w, overlap_left, ratio = compute_overlap(cur, top)
-
-        # 요약용: 마지막 판정 ratio 기록(성공/실패 상관 없이)
         state.run_last_overlap_ratio = float(ratio)
 
         # 실패
@@ -139,12 +131,14 @@ def update_game(
             state.game_over = True
             state.fail_reason = "완전 빗나감"
             state.best = max(state.best, state.score)
+            state.sfx_queue.append("gameover")
             return
 
         if ratio < float(min_overlap_ratio):
             state.game_over = True
             state.fail_reason = "겹침 부족"
             state.best = max(state.best, state.score)
+            state.sfx_queue.append("gameover")
             return
 
         # 조각 생성(원본 기준)
@@ -159,20 +153,14 @@ def update_game(
         left_w = new_left - orig_left
         if left_w > 0.0:
             state.shards.append(
-                BlockShard(
-                    x=orig_left, y=shard_y, w=left_w, h=cur.h,
-                    color=cur.color, vy=float(shard_initial_vy)
-                )
+                BlockShard(x=orig_left, y=shard_y, w=left_w, h=cur.h, color=cur.color, vy=float(shard_initial_vy))
             )
             added_shards += 1
 
         right_w = orig_right - new_right
         if right_w > 0.0:
             state.shards.append(
-                BlockShard(
-                    x=new_right, y=shard_y, w=right_w, h=cur.h,
-                    color=cur.color, vy=float(shard_initial_vy)
-                )
+                BlockShard(x=new_right, y=shard_y, w=right_w, h=cur.h, color=cur.color, vy=float(shard_initial_vy))
             )
             added_shards += 1
 
@@ -184,14 +172,11 @@ def update_game(
         cur.phase = "settled"
         state.stack.append(cur)
         state.score += 1
-
-        # BEST 즉시 갱신
         state.best = max(state.best, state.score)
 
-        # ===== 런 통계 누적 =====
+        # 런 통계
         state.run_landings += 1
         state.run_overlap_sum += float(ratio)
-
         state.run_min_width = min(state.run_min_width, float(cur.w))
         if cur.w <= 80:
             state.run_narrow_streak += 1
@@ -209,6 +194,11 @@ def update_game(
         state.shake_timer = float(shake_time)
         state.shake_amp = float(shake_intensity) * (float(perfect_shake_mult) if is_perfect else 1.0)
 
+        # SFX: land + (perfect면 perfect 추가)
+        state.sfx_queue.append("land")
+        if is_perfect:
+            state.sfx_queue.append("perfect")
+
         # PERFECT / COMBO
         if is_perfect:
             state.perfect_combo += 1
@@ -223,7 +213,7 @@ def update_game(
         if is_perfect and combo_every > 0 and (state.perfect_combo % int(combo_every) == 0):
             state.width_bonus += int(combo_bonus)
 
-        # 업적 체크(성공 착지 직후)
+        # 업적 체크
         newly = achievements.unlock_new(state)
         for a in newly:
             state.toast_queue.append(f"ACHIEVEMENT UNLOCKED: {a.title}")

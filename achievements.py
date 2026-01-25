@@ -1,19 +1,5 @@
 from __future__ import annotations
 
-"""
-achievements.py
-
-업적 시스템 (Commit 8)
-
-목표:
-- "할 이유"를 만들어서 플레이 시간을 늘리는 장치
-- 구현은 단순하게: 조건을 만족하면 1회 언락 → save.json에 저장
-
-구성:
-- Achievement 정의(아이디/제목/설명/조건/진행도)
-- 매 프레임(정확히는 '블록 착지 성공' 같은 중요한 타이밍)에 체크
-"""
-
 from dataclasses import dataclass
 from typing import Callable, Optional, Tuple, Any, List
 

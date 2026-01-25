@@ -1,12 +1,5 @@
 from __future__ import annotations
 
-"""
-render.py
-
-Commit 9:
-- 게임오버 오버레이에 "런 요약 통계" 박스 추가
-"""
-
 import random
 from typing import Tuple
 import pygame

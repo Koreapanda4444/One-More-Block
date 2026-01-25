@@ -1,12 +1,5 @@
 from __future__ import annotations
 
-"""
-spawner.py
-
-Commit 9:
-- 런 요약 통계(run_*) 초기화 항목 추가
-"""
-
 import random
 from models import Block, GameState
 from mechanics import get_top_block
