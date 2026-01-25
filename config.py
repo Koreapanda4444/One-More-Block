@@ -1,10 +1,10 @@
 """config.py
 
-원-모어-블록(One More Block) 전역 설정.
+One More Block - 전역 설정 파일
 
 원칙
-- 숫자(속도/크기/판정)는 여기서만 관리한다.
-- 다른 파일은 config 값을 '읽기'만 하고, 값 자체를 바꾸지 않는다.
+- 숫자(속도/크기/판정) 같은 튜닝 값은 여기서만 관리
+- 다른 파일은 config 값을 '읽기'만 한다
 """
 
 # =========================
@@ -16,22 +16,23 @@ FPS = 60
 # 기본 창 크기(작은 창 모드)
 WINDOW_W, WINDOW_H = 900, 600
 
-# "풀스크린"(pygame.FULLSCREEN) 사용 X
-# 대신 '창모드 전체크기'를 기본으로 사용한다.
+# "풀스크린(FULLSCREEN)" 사용 X
+# 대신 '창모드 전체크기(windowed_max)'를 기본으로 쓴다.
 WINDOW_MODE_WINDOWED = "windowed"            # (WINDOW_W, WINDOW_H)
 WINDOW_MODE_WINDOWED_MAX = "windowed_max"    # 데스크톱 해상도 크기(창 프레임 있음)
 WINDOW_MODE_BORDERLESS = "borderless"        # 데스크톱 해상도 크기(프레임 없음)
 
-# 시작 모드 (요청: 풀스크린 X + 창모드 전체크기)
+# 시작 모드(요청: 풀스크린 X + 창모드 전체크기)
 START_WINDOW_MODE = WINDOW_MODE_WINDOWED_MAX
 
-# 키 설정(문자열 → pygame에서 key_code로 변환)
-KEY_TOGGLE_WINDOW_MODE = "F11"
-KEY_QUIT = "ESC"
-KEY_DROP = "SPACE"
+# 키 설정: pygame.key.key_code()가 인식하는 이름으로 통일
+# (중요) "ESC" 같은 축약어는 pygame이 모르는 경우가 있으니 "escape" 사용
+KEY_TOGGLE_WINDOW_MODE = "f11"
+KEY_QUIT = "escape"
+KEY_DROP = "space"
 
 # =========================
-# Colors / Layout
+# Colors / Layout (밝은 톤)
 # =========================
 
 BG_COLOR = (235, 245, 255)
@@ -90,8 +91,6 @@ SHARD_FALL_SPEED = 200
 # BGM
 # =========================
 
-# - 외부 파일 없이 코드에서 생성한 루프 톤을 재생
-# - 너무 시끄럽지 않게 기본 볼륨은 낮게(0.25) 설정
 BGM_DEFAULT_ON = True
 BGM_DEFAULT_VOLUME = 0.25
 BGM_VOLUME_STEP = 0.05
