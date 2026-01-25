@@ -1,23 +1,27 @@
 from __future__ import annotations
 
 import sys
+
 import pygame
 
 import config
-from models import GameState
-from window import create_screen
-from input_handler import handle_events
-from update import update_game
+from audio import BgmPlayer
 from camera import compute_target_cam_y
+from input_handler import handle_events
+from models import GameState
 from render import draw_game
+from save_data import load_best, save_best, load_bgm_settings, save_bgm_settings
 from spawner import reset_run
-from save_data import load_profile, save_profile
-from difficulty import compute_difficulty
-from audio import AudioManager
+from update import update_game
+from window import create_screen
+
+
+def _clamp01(v: float) -> float:
+    return 0.0 if v < 0.0 else 1.0 if v > 1.0 else v
 
 
 def main() -> None:
-    # mixer 지연 줄이기(가능한 환경에서만)
+    # ✅ mixer 지연 줄이기(가능한 환경에서만)
     try:
         pygame.mixer.pre_init(44100, -16, 1, 512)
     except Exception:
@@ -43,24 +47,25 @@ def main() -> None:
 
     colors = {"bg": config.BG_COLOR, "floor": config.FLOOR_COLOR, "text": config.TEXT_COLOR}
 
+    # =========================
+    # GameState + Save
+    # =========================
     state = GameState()
 
-    # profile 로드 (best + achievements + volume/mute)
-    best, unlocked, vol, muted = load_profile()
-    state.best = best
-    state.unlocked_achievements = set(unlocked)
-    state.audio_volume = float(vol) if vol is not None else config.DEFAULT_VOLUME
-    state.audio_muted = bool(muted)
-
-    # 오디오 매니저
-    audio = AudioManager(master_volume=state.audio_volume, muted=state.audio_muted)
-    audio.init()
-    audio.apply_volume()
-
+    # BEST 불러오기
+    state.best = load_best()
     saved_best = state.best
-    saved_unlocked = set(state.unlocked_achievements)
-    saved_vol = state.audio_volume
-    saved_muted = state.audio_muted
+
+    # BGM 설정 불러오기
+    on, vol = load_bgm_settings(config.BGM_DEFAULT_ON, config.BGM_DEFAULT_VOLUME)
+    state.bgm_on = bool(on)
+    state.bgm_volume = float(vol)
+    saved_bgm_on = state.bgm_on
+    saved_bgm_vol = state.bgm_volume
+
+    bgm = BgmPlayer(on=state.bgm_on, volume=state.bgm_volume)
+    bgm.init()   # 실패하면 enabled=False로 조용히 꺼짐
+    bgm.apply()  # 재생 반영
 
     reset_run(
         state,
@@ -70,8 +75,6 @@ def main() -> None:
         block_h=config.BLOCK_H,
         edge_padding=config.EDGE_PADDING,
         horizontal_speed=config.HORIZONTAL_SPEED,
-        width_jitter=config.DIFF_JITTER_BASE,
-        spawn_offset=config.DIFF_SPAWN_OFFSET_BASE,
     )
 
     cam_y = 0.0
@@ -81,15 +84,9 @@ def main() -> None:
 
         cmd = handle_events(state, key_toggle, key_drop, key_quit)
 
-        # 입력에서 바뀐 볼륨/뮤트 → 오디오 적용
-        if state.audio_volume != saved_vol:
-            audio.set_volume(state.audio_volume)
-            saved_vol = state.audio_volume
-        if state.audio_muted != saved_muted:
-            audio.muted = state.audio_muted
-            audio.apply_volume()
-            saved_muted = state.audio_muted
-
+        # =========================
+        # Command 처리
+        # =========================
         if cmd == "toggle_window_mode":
             borderless_max = not borderless_max
             screen = create_screen(borderless_max, (config.WINDOW_W, config.WINDOW_H))
@@ -104,11 +101,9 @@ def main() -> None:
                 block_h=config.BLOCK_H,
                 edge_padding=config.EDGE_PADDING,
                 horizontal_speed=config.HORIZONTAL_SPEED,
-                width_jitter=config.DIFF_JITTER_BASE,
-                spawn_offset=config.DIFF_SPAWN_OFFSET_BASE,
             )
 
-        if cmd == "restart":
+        elif cmd == "restart":
             reset_run(
                 state,
                 screen_w=W,
@@ -117,77 +112,85 @@ def main() -> None:
                 block_h=config.BLOCK_H,
                 edge_padding=config.EDGE_PADDING,
                 horizontal_speed=config.HORIZONTAL_SPEED,
-                width_jitter=config.DIFF_JITTER_BASE,
-                spawn_offset=config.DIFF_SPAWN_OFFSET_BASE,
             )
 
-        # 런 타임 누적(Commit 9)
-        if (not state.game_over) and (not state.show_achievements):
-            state.run_time += dt
+        elif cmd == "bgm_toggle":
+            state.bgm_on = not state.bgm_on
+            bgm.on = state.bgm_on
+            bgm.apply()
 
-        # 업적 패널 열려 있으면 업데이트 멈춤
-        if not state.show_achievements:
-            diff = compute_difficulty(
-                score=state.score,
-                base_hs=config.HORIZONTAL_SPEED,
-                base_fs=config.FALL_SPEED,
-                base_jitter=config.DIFF_JITTER_BASE,
-                base_offset=config.DIFF_SPAWN_OFFSET_BASE,
-                step_score=config.DIFF_STEP_SCORE,
-                hs_step=config.DIFF_HS_STEP,
-                hs_max_mul=config.DIFF_HS_MAX_MUL,
-                fs_step=config.DIFF_FALL_STEP,
-                fs_max_mul=config.DIFF_FALL_MAX_MUL,
-                jitter_step=config.DIFF_JITTER_STEP,
-                jitter_max=config.DIFF_JITTER_MAX,
-                offset_step=config.DIFF_SPAWN_OFFSET_STEP,
-                offset_max=config.DIFF_SPAWN_OFFSET_MAX,
-            )
+            state.flash_text = "BGM ON" if state.bgm_on else "BGM OFF"
+            state.flash_timer = 0.6
 
-            update_game(
-                state,
-                dt=dt,
-                screen_w=W,
-                floor_y=floor_y,
-                hover_y=config.HOVER_Y,
-                block_h=config.BLOCK_H,
-                fall_speed=diff.fall_speed,
-                horizontal_speed=diff.horizontal_speed,
-                edge_padding=config.EDGE_PADDING,
-                min_overlap_ratio=config.MIN_OVERLAP_RATIO,
-                perfect_ratio=config.PERFECT_RATIO,
-                flash_time=config.FLASH_TIME,
-                combo_every=config.COMBO_REWARD_EVERY,
-                combo_bonus=config.COMBO_WIDTH_BONUS,
-                shard_gravity=config.SHARD_GRAVITY,
-                shard_fall_speed=config.SHARD_FALL_SPEED,
-                shard_initial_vy=config.SHARD_FALL_SPEED,
-                land_time=config.LAND_SQUASH_TIME,
-                shake_time=config.SHAKE_TIME,
-                shake_intensity=config.SHAKE_INTENSITY,
-                perfect_shake_mult=config.PERFECT_SHAKE_MULT,
-                width_jitter=diff.width_jitter,
-                spawn_offset=diff.spawn_offset,
-                toast_time=config.TOAST_TIME,
-            )
+        elif cmd == "bgm_up":
+            state.bgm_volume = _clamp01(state.bgm_volume + config.BGM_VOLUME_STEP)
+            bgm.set_volume(state.bgm_volume)
+            # 볼륨 올리면 자동으로 켜기
+            if not state.bgm_on:
+                state.bgm_on = True
+                bgm.on = True
+                bgm.apply()
 
-        # ✅ SFX 큐 소비 → 재생
-        while state.sfx_queue:
-            audio.play(state.sfx_queue.popleft())
+            state.flash_text = f"BGM {int(state.bgm_volume * 100)}%"
+            state.flash_timer = 0.6
 
-        # 저장(변경 시만)
-        if (
-            state.best != saved_best
-            or state.unlocked_achievements != saved_unlocked
-            or state.audio_volume != saved_vol
-            or state.audio_muted != saved_muted
-        ):
-            save_profile(state.best, state.unlocked_achievements, state.audio_volume, state.audio_muted)
+        elif cmd == "bgm_down":
+            state.bgm_volume = _clamp01(state.bgm_volume - config.BGM_VOLUME_STEP)
+            bgm.set_volume(state.bgm_volume)
+            # 0%면 자동 OFF 처리(원하면 지워도 됨)
+            if state.bgm_volume <= 0.001:
+                state.bgm_on = False
+                bgm.on = False
+                bgm.apply()
+
+            state.flash_text = f"BGM {int(state.bgm_volume * 100)}%"
+            state.flash_timer = 0.6
+
+        # =========================
+        # Flash timer (기존 PERFECT 텍스트도 자동으로 사라지게)
+        # =========================
+        if state.flash_timer > 0.0:
+            state.flash_timer = max(0.0, state.flash_timer - dt)
+            if state.flash_timer == 0.0:
+                state.flash_text = ""
+
+        # =========================
+        # Update
+        # =========================
+        update_game(
+            state,
+            dt=dt,
+            screen_w=W,
+            floor_y=floor_y,
+            hover_y=config.HOVER_Y,
+            block_h=config.BLOCK_H,
+            fall_speed=config.FALL_SPEED,
+            horizontal_speed=config.HORIZONTAL_SPEED,
+            edge_padding=config.EDGE_PADDING,
+            min_overlap_ratio=config.MIN_OVERLAP_RATIO,
+            perfect_ratio=config.PERFECT_RATIO,
+            flash_time=config.FLASH_TIME,
+            combo_every=config.COMBO_REWARD_EVERY,
+            combo_bonus=config.COMBO_WIDTH_BONUS,
+            shard_gravity=config.SHARD_GRAVITY,
+            shard_fall_speed=config.SHARD_FALL_SPEED,
+        )
+
+        # =========================
+        # Save (best + bgm settings)
+        # =========================
+        if state.best > saved_best:
+            save_best(state.best)
             saved_best = state.best
-            saved_unlocked = set(state.unlocked_achievements)
-            saved_vol = state.audio_volume
-            saved_muted = state.audio_muted
 
+        if state.bgm_on != saved_bgm_on or abs(state.bgm_volume - saved_bgm_vol) > 1e-6:
+            save_bgm_settings(state.bgm_on, state.bgm_volume)
+            saved_bgm_on = state.bgm_on
+            saved_bgm_vol = state.bgm_volume
+
+        # =========================
+        # Camera + Render
+        # =========================
         target_cam = compute_target_cam_y(state, config.CAMERA_TOP_MARGIN)
         cam_y += (target_cam - cam_y) * min(1.0, config.CAMERA_SMOOTH * dt)
 
@@ -201,7 +204,6 @@ def main() -> None:
             screen_size=(W, H),
             floor_y=floor_y,
             colors=colors,
-            land_squash_px=config.LAND_SQUASH_PIXELS,
         )
 
         pygame.display.flip()
