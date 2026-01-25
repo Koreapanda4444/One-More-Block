@@ -3,9 +3,8 @@ from __future__ import annotations
 """
 spawner.py
 
-Commit 7~8:
-- width_jitter, spawn_offset을 난이도에서 받아 스폰에 반영
-- 런 통계(run_*)도 여기서 초기화
+Commit 9:
+- 런 요약 통계(run_*) 초기화 항목 추가
 """
 
 import random
@@ -29,6 +28,7 @@ def spawn_first_block(state: GameState, screen_w: int, floor_y: float, block_h: 
 
     state.score = 0
     state.game_over = False
+    state.fail_reason = ""
 
     state.perfect_combo = 0
     state.width_bonus = 0
@@ -43,11 +43,17 @@ def spawn_first_block(state: GameState, screen_w: int, floor_y: float, block_h: 
     state.shake_total = 0.0
     state.shake_amp = 0.0
 
+    # ===== 런 통계 초기화 =====
+    state.run_time = 0.0
     state.run_perfects = 0
     state.run_shards_created = 0
     state.run_max_combo = 0
     state.run_min_width = float(w)
     state.run_narrow_streak = 0
+
+    state.run_landings = 0
+    state.run_overlap_sum = 0.0
+    state.run_last_overlap_ratio = 0.0
 
 
 def spawn_next_block(
@@ -89,7 +95,10 @@ def spawn_next_block(
     direction = random.choice([-1, 1])
     vx = float(direction) * float(horizontal_speed)
 
-    state.current = Block(x=x, y=float(hover_y), w=float(w), h=float(block_h), color=pastel_color(), phase="move", vx=vx)
+    state.current = Block(
+        x=x, y=float(hover_y), w=float(w), h=float(block_h),
+        color=pastel_color(), phase="move", vx=vx
+    )
 
 
 def reset_run(

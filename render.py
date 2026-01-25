@@ -3,9 +3,8 @@ from __future__ import annotations
 """
 render.py
 
-- 토스트(업적 언락 알림) 표시
-- A 키 업적 패널 오버레이
-- 착지 스쿼시 + 흔들림 FX
+Commit 9:
+- 게임오버 오버레이에 "런 요약 통계" 박스 추가
 """
 
 import random
@@ -37,6 +36,79 @@ def _draw_toast(
 
     x = (W - box_w) // 2
     screen.blit(box, (x, y))
+
+
+def _fmt_time(seconds: float) -> str:
+    seconds = max(0.0, float(seconds))
+    m = int(seconds // 60)
+    s = int(seconds % 60)
+    return f"{m:02d}:{s:02d}"
+
+
+def _draw_run_summary(
+    screen: pygame.Surface,
+    font_title: pygame.font.Font,
+    font_line: pygame.font.Font,
+    state: GameState,
+    W: int,
+    H: int,
+    text_color: Tuple[int, int, int],
+) -> None:
+    """
+    게임오버 시 중앙에 런 요약 박스를 그린다.
+    """
+    # 평균 겹침 비율 계산(성공 착지 기준)
+    if state.run_landings > 0:
+        avg = state.run_overlap_sum / max(1, state.run_landings)
+    else:
+        avg = 0.0
+
+    avg_pct = int(avg * 100)
+    last_pct = int(max(0.0, min(1.0, state.run_last_overlap_ratio)) * 100)
+
+    lines = [
+        ("HEIGHT", str(state.score)),
+        ("BEST", str(state.best)),
+        ("MAX COMBO", str(state.run_max_combo)),
+        ("PERFECTS", str(state.run_perfects)),
+        ("SHARDS", str(state.run_shards_created)),
+        ("MIN WIDTH", f"{int(state.run_min_width)} px" if state.run_min_width < 999998 else "-"),
+        ("AVG OVERLAP", f"{avg_pct}%"),
+        ("LAST OVERLAP", f"{last_pct}%"),
+        ("TIME", _fmt_time(state.run_time)),
+        ("FAIL", state.fail_reason or "-"),
+    ]
+
+    title = font_title.render("RUN SUMMARY", True, text_color)
+
+    # 박스 크기 계산
+    pad = 18
+    line_h = 24
+    box_w = 520
+    box_h = pad * 2 + 32 + len(lines) * line_h + 18
+
+    x = (W - box_w) // 2
+    y = (H - box_h) // 2 - 10
+
+    panel = pygame.Surface((box_w, box_h), pygame.SRCALPHA)
+    panel.fill((255, 255, 255, 235))
+    screen.blit(panel, (x, y))
+
+    # 타이틀
+    screen.blit(title, (x + (box_w - title.get_width()) // 2, y + pad))
+
+    # 내용
+    y_line = y + pad + 40
+    key_x = x + 32
+    val_x = x + box_w - 32
+
+    for k, v in lines:
+        key = font_line.render(k, True, text_color)
+        val = font_line.render(v, True, text_color)
+
+        screen.blit(key, (key_x, y_line))
+        screen.blit(val, (val_x - val.get_width(), y_line))
+        y_line += line_h
 
 
 def draw_game(
@@ -120,10 +192,20 @@ def draw_game(
         overlay.fill((255, 255, 255, 160))
         screen.blit(overlay, (0, 0))
 
-        t1 = font_main.render(f"HEIGHT: {state.score}", True, colors["text"])
+        # ✅ 런 요약 박스
+        _draw_run_summary(
+            screen,
+            font_title=font_flash,
+            font_line=font_hint,
+            state=state,
+            W=W,
+            H=H,
+            text_color=colors["text"],
+        )
+
+        # 재시작 안내
         t2 = font_main.render("ONE MORE?  (click / space)", True, colors["text"])
-        screen.blit(t1, (W // 2 - t1.get_width() // 2, H // 2 - 40))
-        screen.blit(t2, (W // 2 - t2.get_width() // 2, H // 2 + 10))
+        screen.blit(t2, (W // 2 - t2.get_width() // 2, H // 2 + 170))
 
     # 업적 패널
     if state.show_achievements:

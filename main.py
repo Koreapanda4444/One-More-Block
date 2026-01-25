@@ -3,9 +3,9 @@ from __future__ import annotations
 """
 main.py
 
-Commit 8:
-- save.json: BEST + achievements 저장/로드
-- A 업적 패널 열려있을 땐 업데이트 멈춤(읽기 편하게)
+Commit 9:
+- 런 플레이 시간(state.run_time) 누적
+  (업적 패널 열려있을 때 / 게임오버 상태에서는 증가하지 않게)
 """
 
 import sys
@@ -102,6 +102,10 @@ def main() -> None:
                 width_jitter=config.DIFF_JITTER_BASE,
                 spawn_offset=config.DIFF_SPAWN_OFFSET_BASE,
             )
+
+        # ✅ 런 타임 누적: 게임 진행 중 + 업적 패널 닫힘 상태에서만 증가
+        if (not state.game_over) and (not state.show_achievements):
+            state.run_time += dt
 
         # 업적 패널 열려 있으면 업데이트 멈춤
         if not state.show_achievements:
