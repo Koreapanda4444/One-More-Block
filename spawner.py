@@ -1,25 +1,12 @@
-"""spawner.py
-
-블록 생성(스폰) 관련.
-"""
-
 from __future__ import annotations
 
 import random
-
 from mechanics import get_top_block
 from models import Block, GameState
 from utils import pastel_color
 
 
-def spawn_first_block(
-    state: GameState,
-    screen_w: int,
-    floor_y: float,
-    block_h: int,
-    edge_padding: int,
-) -> None:
-    """런 시작 시 바닥에 기본 블록 1개를 생성."""
+def spawn_first_block(state: GameState, screen_w: int, floor_y: float, block_h: int, edge_padding: int) -> None:
     w = min(280, screen_w - edge_padding * 2)
     x = (screen_w - w) / 2
     y = floor_y - block_h
@@ -32,12 +19,20 @@ def spawn_first_block(
     state.score = 0
     state.current = None
     state.game_over = False
+    state.game_over_recorded = False
 
     state.perfect_combo = 0
     state.width_bonus = 0
+
+    state.run_total_perfect = 0
+    state.run_max_combo = 0
+
     state.flash_text = ""
     state.flash_timer = 0.0
+
     state.shards.clear()
+    state.particles.clear()
+    state.shake_timer = 0.0
 
 
 def spawn_next_block(
@@ -48,7 +43,6 @@ def spawn_next_block(
     edge_padding: int,
     horizontal_speed: float,
 ) -> None:
-    """다음 블록 생성."""
     top = get_top_block(state)
     if top is None:
         return
@@ -91,6 +85,5 @@ def reset_run(
     edge_padding: int,
     horizontal_speed: float,
 ) -> None:
-    """런을 완전히 초기화."""
     spawn_first_block(state, screen_w, floor_y, block_h, edge_padding)
     spawn_next_block(state, screen_w, hover_y, block_h, edge_padding, horizontal_speed)

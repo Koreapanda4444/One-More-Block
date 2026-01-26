@@ -1,29 +1,27 @@
 # ONE MORE BLOCK
 
-`Pygame`으로 만든 **원 버튼 스태킹(Stacking) 게임**.
-
-- **클릭/스페이스**로 타이밍 맞춰 블록을 떨어뜨리고
-- 착지 시 **겹친 부분만 남는(트림)** 방식으로
-- 점점 좁아지는 스택을 얼마나 높게 쌓는지 겨루는 게임
+Pygame로 만든 스태킹 게임.
 
 ## Controls
+- Left Click / SPACE: Drop
+- SPACE / ENTER (Game Over): Restart
+- F11: window size toggle (windowed_max ↔ windowed)
+- B: BGM ON/OFF
+- [ / ]: BGM volume down/up
+- LEFT / RIGHT (Game Over): Skin select
 
-- **Left Click / SPACE**: Drop
-- **SPACE / ENTER** (Game Over): Restart
-- **F11**: Window size toggle
-  - `창모드 전체크기(windowed_max)` ↔ `작은 창(windowed)`
-- **B**: BGM ON/OFF
-- **[ / ]**: BGM volume down/up
+## Skins (Themes)
+- Sky: 기본 (눈부심 완화 톤 적용)
+- Neon: BEST 25 달성 시 해금
+- Paper: PERFECT 누적 10회 달성 시 해금
+
+## PERFECT Feedback
+- 카메라 흔들림 + 파티클 + 클릭 SFX
 
 ## Save
-
-실행 폴더에 `save_data.json`을 생성해 아래를 저장합니다.
-
-- `best`: 최고 기록
-- `bgm_on`, `bgm_volume`: 배경음 설정
-
-## Run
-
-```bash
-pip install pygame
-python main.py
+save_data.json
+- best
+- bgm_on, bgm_volume
+- selected_theme, unlocked_themes
+- lifetime_perfect
+- runs (최근 런 기록)

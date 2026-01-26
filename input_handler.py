@@ -1,19 +1,18 @@
-"""input_handler.py
-
-입력(키/마우스) 처리.
-"""
-
 from __future__ import annotations
 
+"""input_handler.py
+
+- 드랍: 클릭/스페이스
+- 게임오버: 스페이스/엔터로 재시작
+- 게임오버: 좌/우로 테마 변경 시도
+"""
+
 from typing import Optional
-
 import pygame
-
 from models import GameState
 
 
 def _begin_drop(state: GameState) -> None:
-    """현재 블록을 drop 상태로 전환(원본 좌표/폭 저장)."""
     if not state.current:
         return
     if state.current.phase != "move":
@@ -23,13 +22,7 @@ def _begin_drop(state: GameState) -> None:
     state.current.phase = "drop"
 
 
-def handle_events(
-    state: GameState,
-    key_toggle_window_mode: int,
-    key_drop: int,
-    key_quit: int,
-) -> Optional[str]:
-    """pygame 이벤트를 읽고 명령 문자열을 반환."""
+def handle_events(state: GameState, key_toggle_window_mode: int, key_drop: int, key_quit: int) -> Optional[str]:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             state.running = False
@@ -49,6 +42,11 @@ def handle_events(
                 return "bgm_down"
             if event.key in (pygame.K_RIGHTBRACKET, pygame.K_EQUALS):
                 return "bgm_up"
+
+            if state.game_over and event.key == pygame.K_LEFT:
+                return "theme_prev"
+            if state.game_over and event.key == pygame.K_RIGHT:
+                return "theme_next"
 
             if state.game_over and event.key in (pygame.K_SPACE, pygame.K_RETURN):
                 return "restart"
